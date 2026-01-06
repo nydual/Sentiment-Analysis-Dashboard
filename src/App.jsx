@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { MessageSquare, Upload, Download, Trash2, Settings, Database } from 'lucide-react';
+import { MessageSquare, Upload, Download, Trash2, Database } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { financialSamples, governmentSamples, createSampleCSV } from './data/sampleData';
 
 function App() {
+  // ALL STATE MUST BE INSIDE THE COMPONENT
   const [text, setText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [history, setHistory] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
+  const [industry, setIndustry] = useState('finance'); // Moved inside
 
-  // Simple sentiment analysis
+  // ALL FUNCTIONS MUST BE INSIDE THE COMPONENT
   const analyzeSentiment = (text) => {
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'best', 'awesome', 'happy', 'perfect'];
     const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'poor', 'disappointed', 'sad', 'angry'];
@@ -36,6 +39,38 @@ function App() {
       return { sentiment: 'NEGATIVE', score: 0.6 + (negativeScore * 0.35) };
     }
     return { sentiment: 'NEUTRAL', score: 0.5 };
+  };
+
+  const loadSampleData = () => {
+    const samples = industry === 'finance' ? financialSamples : governmentSamples;
+    
+    const newEntries = samples.map((item, index) => {
+      const result = analyzeSentiment(item.text);
+      return {
+        id: Date.now() + index,
+        text: item.text.substring(0, 150) + (item.text.length > 150 ? '...' : ''),
+        fullText: item.text,
+        sentiment: result.sentiment,
+        confidence: result.score,
+        timestamp: new Date().toLocaleString(),
+        source: 'sample',
+        category: item.category
+      };
+    });
+    
+    setHistory([...newEntries, ...history]);
+    alert(`✅ Loaded ${newEntries.length} sample ${industry} reviews!`);
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent = createSampleCSV(industry);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${industry}-sample-data.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleAnalyze = () => {
@@ -147,6 +182,7 @@ function App() {
     { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#ef4444' }
   ];
 
+  // RETURN STATEMENT - ALL JSX GOES HERE
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -157,6 +193,31 @@ function App() {
             Sentiment Analysis Dashboard
           </h1>
           <p className="text-gray-600 mt-2">AI-powered emotion detection from text data</p>
+        </div>
+
+        {/* Quick Actions - NOW INSIDE THE RETURN */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+          <h2 className="text-xl font-bold mb-4">🚀 Quick Start</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={loadSampleData}
+              className="bg-white text-indigo-600 py-3 px-4 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+            >
+              📊 Load {industry === 'finance' ? 'Financial' : 'Government'} Sample Data
+            </button>
+            <button
+              onClick={downloadSampleCSV}
+              className="bg-white text-purple-600 py-3 px-4 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+            >
+              📥 Download Sample CSV
+            </button>
+            <button
+              onClick={() => setIndustry(industry === 'finance' ? 'government' : 'finance')}
+              className="bg-white text-green-600 py-3 px-4 rounded-lg font-semibold hover:bg-green-50 transition-colors"
+            >
+              🔄 Switch to {industry === 'finance' ? 'Government' : 'Finance'}
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
