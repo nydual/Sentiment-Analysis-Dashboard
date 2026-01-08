@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
-import { MessageSquare, Upload, Download, Trash2, Database } from 'lucide-react';
+import { MessageSquare, Upload, Download, Trash2, Database, Settings as SettingsIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { financialSamples, governmentSamples, createSampleCSV } from './data/sampleData';
+import { analyzeWithHuggingFace, analyzeWithHuggingFaceFinancial } from './utils/huggingFaceAPI';
+import Settings from './components/Settings';
 
 function App() {
-  // ALL STATE MUST BE INSIDE THE COMPONENT
+  // ALL STATE
   const [text, setText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [history, setHistory] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
-  const [industry, setIndustry] = useState('finance'); // Moved inside
+  const [industry, setIndustry] = useState('finance');
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [useApi, setUseApi] = useState(false);
 
-  // ALL FUNCTIONS MUST BE INSIDE THE COMPONENT
+  // SENTIMENT ANALYSIS - LOCAL
   const analyzeSentiment = (text) => {
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'best', 'awesome', 'happy', 'perfect'];
     const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'poor', 'disappointed', 'sad', 'angry'];
@@ -41,6 +46,7 @@ function App() {
     return { sentiment: 'NEUTRAL', score: 0.5 };
   };
 
+  // LOAD SAMPLE DATA
   const loadSampleData = () => {
     const samples = industry === 'finance' ? financialSamples : governmentSamples;
     
@@ -62,6 +68,7 @@ function App() {
     alert(`✅ Loaded ${newEntries.length} sample ${industry} reviews!`);
   };
 
+  // DOWNLOAD SAMPLE CSV
   const downloadSampleCSV = () => {
     const csvContent = createSampleCSV(industry);
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -73,11 +80,44 @@ function App() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleAnalyze = () => {
+  // ANALYZE TEXT - WITH API SUPPORT
+  const handleAnalyze = async () => {
     if (!text.trim()) return;
     
     setAnalyzing(true);
-    setTimeout(() => {
+    try {
+      let result;
+      
+      // Check if user wants to use API
+      if (useApi && apiKey) {
+        // Use Hugging Face API
+        if (industry === 'finance') {
+          result = await analyzeWithHuggingFaceFinancial(text, apiKey);
+        } else {
+          result = await analyzeWithHuggingFace(text, apiKey);
+        }
+      } else {
+        // Use local analysis
+        result = analyzeSentiment(text);
+      }
+      
+      const entry = {
+        id: Date.now(),
+        text: text.substring(0, 150) + (text.length > 150 ? '...' : ''),
+        fullText: text,
+        sentiment: result.sentiment,
+        confidence: result.score,
+        timestamp: new Date().toLocaleString(),
+        source: useApi ? 'api' : 'local',
+        provider: result.provider || 'local'
+      };
+      
+      setCurrentResult(entry);
+      setHistory([entry, ...history]);
+      setText('');
+    } catch (error) {
+      alert(`❌ Error: ${error.message}\n\nFalling back to local analysis...`);
+      // Fallback to local if API fails
       const result = analyzeSentiment(text);
       const entry = {
         id: Date.now(),
@@ -86,16 +126,16 @@ function App() {
         sentiment: result.sentiment,
         confidence: result.score,
         timestamp: new Date().toLocaleString(),
-        source: 'manual'
+        source: 'local'
       };
-      
       setCurrentResult(entry);
       setHistory([entry, ...history]);
       setText('');
-      setAnalyzing(false);
-    }, 500);
+    }
+    setAnalyzing(false);
   };
 
+  // CSV UPLOAD
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -142,15 +182,17 @@ function App() {
     event.target.value = null;
   };
 
+  // EXPORT TO CSV
   const exportToCSV = () => {
     const csvContent = [
-      ['Text', 'Sentiment', 'Confidence', 'Timestamp', 'Source'],
+      ['Text', 'Sentiment', 'Confidence', 'Timestamp', 'Source', 'Provider'],
       ...history.map(item => [
         `"${item.fullText.replace(/"/g, '""')}"`,
         item.sentiment,
         item.confidence.toFixed(3),
         item.timestamp,
-        item.source
+        item.source,
+        item.provider || 'local'
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -163,6 +205,7 @@ function App() {
     window.URL.revokeObjectURL(url);
   };
 
+  // GET SENTIMENT COLOR
   const getSentimentColor = (sentiment) => {
     switch(sentiment) {
       case 'POSITIVE': return 'text-green-600 bg-green-50 border-green-200';
@@ -171,6 +214,7 @@ function App() {
     }
   };
 
+  // CHART DATA
   const sentimentCounts = history.reduce((acc, item) => {
     acc[item.sentiment] = (acc[item.sentiment] || 0) + 1;
     return acc;
@@ -182,20 +226,30 @@ function App() {
     { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#ef4444' }
   ];
 
-  // RETURN STATEMENT - ALL JSX GOES HERE
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-            <MessageSquare className="text-indigo-600" size={40} />
-            Sentiment Analysis Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">AI-powered emotion detection from text data</p>
+        {/* Header with Settings Button */}
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
+              <MessageSquare className="text-indigo-600" size={40} />
+              Sentiment Analysis Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              AI-powered emotion detection from text data
+              {useApi && <span className="ml-2 text-green-600 font-semibold">• API Enabled</span>}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="bg-white p-3 rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <SettingsIcon size={24} className="text-gray-600" />
+          </button>
         </div>
 
-        {/* Quick Actions - NOW INSIDE THE RETURN */}
+        {/* Quick Actions */}
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
           <h2 className="text-xl font-bold mb-4">🚀 Quick Start</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -276,9 +330,16 @@ function App() {
                   <span className={`px-4 py-2 rounded-full font-bold ${getSentimentColor(currentResult.sentiment)}`}>
                     {currentResult.sentiment}
                   </span>
-                  <span className="text-sm font-semibold">
-                    {(currentResult.confidence * 100).toFixed(1)}%
-                  </span>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">
+                      {(currentResult.confidence * 100).toFixed(1)}%
+                    </div>
+                    {currentResult.provider && (
+                      <div className="text-xs text-gray-500">
+                        via {currentResult.provider}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-gray-700 italic">"{currentResult.text}"</p>
               </div>
@@ -342,9 +403,16 @@ function App() {
                 history.map((item) => (
                   <div key={item.id} className={`p-3 rounded-lg border ${getSentimentColor(item.sentiment)}`}>
                     <div className="flex justify-between items-start mb-2">
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${getSentimentColor(item.sentiment)}`}>
-                        {item.sentiment} ({(item.confidence * 100).toFixed(0)}%)
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${getSentimentColor(item.sentiment)}`}>
+                          {item.sentiment} ({(item.confidence * 100).toFixed(0)}%)
+                        </span>
+                        {item.provider && item.provider !== 'local' && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            {item.provider}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-500">{item.timestamp}</span>
                     </div>
                     <p className="text-sm text-gray-700">{item.text}</p>
@@ -354,6 +422,18 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Settings Modal */}
+        <Settings
+          show={showSettings}
+          onClose={() => setShowSettings(false)}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          useApi={useApi}
+          setUseApi={setUseApi}
+          industry={industry}
+          setIndustry={setIndustry}
+        />
       </div>
     </div>
   );
