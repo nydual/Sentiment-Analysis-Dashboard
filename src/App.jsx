@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { financialSamples, governmentSamples, createSampleCSV } from './data/sampleData';
 import { analyzeWithHuggingFace, analyzeWithHuggingFaceFinancial } from './utils/huggingFaceAPI';
 import Settings from './components/Settings';
+// Removed unused AdvancedCharts import
 
 function App() {
   // ALL STATE
@@ -17,39 +18,39 @@ function App() {
   const [useApi, setUseApi] = useState(false);
 
   // SENTIMENT ANALYSIS - LOCAL
-  const analyzeSentiment = (text) => {
+  function analyzeSentiment(text) {
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'best', 'awesome', 'happy', 'perfect'];
     const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'poor', 'disappointed', 'sad', 'angry'];
-    
+
     const lowerText = text.toLowerCase();
     const words = lowerText.split(/\W+/);
-    
+
     let positiveCount = 0;
     let negativeCount = 0;
-    
-    words.forEach(word => {
+
+    words.forEach(function (word) {
       if (positiveWords.includes(word)) positiveCount++;
       if (negativeWords.includes(word)) negativeCount++;
     });
-    
+
     const total = positiveCount + negativeCount;
     if (total === 0) return { sentiment: 'NEUTRAL', score: 0.5 };
-    
+
     const positiveScore = positiveCount / total;
     const negativeScore = negativeCount / total;
-    
+
     if (positiveScore > negativeScore) {
       return { sentiment: 'POSITIVE', score: 0.6 + (positiveScore * 0.35) };
     } else if (negativeScore > positiveScore) {
       return { sentiment: 'NEGATIVE', score: 0.6 + (negativeScore * 0.35) };
     }
     return { sentiment: 'NEUTRAL', score: 0.5 };
-  };
+  }
 
   // LOAD SAMPLE DATA
   const loadSampleData = () => {
     const samples = industry === 'finance' ? financialSamples : governmentSamples;
-    
+
     const newEntries = samples.map((item, index) => {
       const result = analyzeSentiment(item.text);
       return {
@@ -63,7 +64,7 @@ function App() {
         category: item.category
       };
     });
-    
+
     setHistory([...newEntries, ...history]);
     alert(`✅ Loaded ${newEntries.length} sample ${industry} reviews!`);
   };
@@ -73,9 +74,7 @@ function App() {
     const csvContent = createSampleCSV(industry);
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${industry}-sample-data.csv`;
+    const a = download = `${industry}-sample-data.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -83,11 +82,11 @@ function App() {
   // ANALYZE TEXT - WITH API SUPPORT
   const handleAnalyze = async () => {
     if (!text.trim()) return;
-    
+
     setAnalyzing(true);
     try {
       let result;
-      
+
       // Check if user wants to use API
       if (useApi && apiKey) {
         // Use Hugging Face API
@@ -100,7 +99,7 @@ function App() {
         // Use local analysis
         result = analyzeSentiment(text);
       }
-      
+
       const entry = {
         id: Date.now(),
         text: text.substring(0, 150) + (text.length > 150 ? '...' : ''),
@@ -111,7 +110,7 @@ function App() {
         source: useApi ? 'api' : 'local',
         provider: result.provider || 'local'
       };
-      
+
       setCurrentResult(entry);
       setHistory([entry, ...history]);
       setText('');
@@ -144,22 +143,22 @@ function App() {
     reader.onload = (e) => {
       const text = e.target.result;
       const lines = text.split('\n').filter(line => line.trim());
-      
+
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const textColumnIndex = headers.findIndex(h => 
+      const textColumnIndex = headers.findIndex(h =>
         ['text', 'review', 'comment', 'feedback'].includes(h)
       );
-      
+
       if (textColumnIndex === -1) {
         alert('Could not find text column. Make sure your CSV has a column named: text, review, or comment');
         return;
       }
-      
+
       const newEntries = [];
       for (let i = 1; i < Math.min(lines.length, 51); i++) {
         const row = lines[i].split(',');
         const textToAnalyze = row[textColumnIndex]?.replace(/^"|"$/g, '').trim();
-        
+
         if (textToAnalyze && textToAnalyze.length > 5) {
           const result = analyzeSentiment(textToAnalyze);
           newEntries.push({
@@ -173,11 +172,11 @@ function App() {
           });
         }
       }
-      
+
       setHistory([...newEntries, ...history]);
       alert(`✅ Analyzed ${newEntries.length} entries!`);
     };
-    
+
     reader.readAsText(file);
     event.target.value = null;
   };
@@ -227,47 +226,47 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1f35] to-[#0f1419] p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header with Settings Button */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-              <MessageSquare className="text-indigo-600" size={40} />
+            <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+              <MessageSquare className="text-cyan-400" size={40} />
               Sentiment Analysis Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-400 mt-2">
               AI-powered emotion detection from text data
-              {useApi && <span className="ml-2 text-green-600 font-semibold">• API Enabled</span>}
+              {useApi && <span className="ml-2 text-yellow-400 font-semibold">• API Enabled</span>}
             </p>
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="bg-white p-3 rounded-lg shadow hover:shadow-md transition-shadow"
+            className="bg-[#1a2332] p-3 rounded-lg shadow-lg hover:bg-[#243447] transition-all border border-cyan-500/30"
           >
-            <SettingsIcon size={24} className="text-gray-600" />
+            <SettingsIcon size={24} className="text-cyan-400" />
           </button>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
-          <h2 className="text-xl font-bold mb-4">🚀 Quick Start</h2>
+        <div className="bg-gradient-to-r from-[#1e3a5f] via-[#1a2f4d] to-[#162840] rounded-lg shadow-xl p-6 mb-6 text-white border border-cyan-500/30">
+          <h2 className="text-xl font-bold mb-4 text-yellow-400">🚀 Quick Start</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={loadSampleData}
-              className="bg-white text-indigo-600 py-3 px-4 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+              className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 py-3 px-4 rounded-lg font-semibold hover:from-yellow-300 hover:to-yellow-400 transition-all shadow-lg"
             >
               📊 Load {industry === 'finance' ? 'Financial' : 'Government'} Sample Data
             </button>
             <button
               onClick={downloadSampleCSV}
-              className="bg-white text-purple-600 py-3 px-4 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+              className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-gray-900 py-3 px-4 rounded-lg font-semibold hover:from-cyan-400 hover:to-cyan-500 transition-all shadow-lg"
             >
               📥 Download Sample CSV
             </button>
             <button
               onClick={() => setIndustry(industry === 'finance' ? 'government' : 'finance')}
-              className="bg-white text-green-600 py-3 px-4 rounded-lg font-semibold hover:bg-green-50 transition-colors"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-400 hover:to-purple-500 transition-all shadow-lg"
             >
               🔄 Switch to {industry === 'finance' ? 'Government' : 'Finance'}
             </button>
@@ -276,40 +275,40 @@ function App() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-            <div className="text-sm text-gray-600">Positive</div>
-            <div className="text-3xl font-bold text-green-600">{sentimentCounts.POSITIVE || 0}</div>
+          <div className="bg-[#1a2332] rounded-lg shadow-xl p-6 border-l-4 border-yellow-400">
+            <div className="text-sm text-gray-400">Positive</div>
+            <div className="text-3xl font-bold text-yellow-400">{sentimentCounts.POSITIVE || 0}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-gray-500">
-            <div className="text-sm text-gray-600">Neutral</div>
-            <div className="text-3xl font-bold text-gray-600">{sentimentCounts.NEUTRAL || 0}</div>
+          <div className="bg-[#1a2332] rounded-lg shadow-xl p-6 border-l-4 border-cyan-400">
+            <div className="text-sm text-gray-400">Neutral</div>
+            <div className="text-3xl font-bold text-cyan-400">{sentimentCounts.NEUTRAL || 0}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
-            <div className="text-sm text-gray-600">Negative</div>
-            <div className="text-3xl font-bold text-red-600">{sentimentCounts.NEGATIVE || 0}</div>
+          <div className="bg-[#1a2332] rounded-lg shadow-xl p-6 border-l-4 border-purple-400">
+            <div className="text-sm text-gray-400">Negative</div>
+            <div className="text-3xl font-bold text-purple-400">{sentimentCounts.NEGATIVE || 0}</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Input Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Analyze Text</h2>
+          <div className="bg-[#1a2332] rounded-lg shadow-xl p-6 border border-cyan-500/30">
+            <h2 className="text-xl font-semibold mb-4 text-white">Analyze Text</h2>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Enter text to analyze (reviews, feedback, comments)..."
-              className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full h-32 p-4 border border-cyan-500/30 rounded-lg focus:ring-2 focus:ring-cyan-400 resize-none bg-[#0f1419] text-white placeholder-gray-500"
             />
-            
+
             <div className="flex gap-3 mt-4">
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing || !text.trim()}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300"
+                className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 text-gray-900 py-3 rounded-lg font-semibold hover:from-cyan-400 hover:to-cyan-500 disabled:from-gray-600 disabled:to-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-lg"
               >
                 {analyzing ? 'Analyzing...' : 'Analyze'}
               </button>
-              
+
               <label className="relative cursor-pointer">
                 <input
                   type="file"
@@ -317,7 +316,7 @@ function App() {
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold flex items-center gap-2">
+                <div className="bg-[#243447] hover:bg-[#2d4159] text-cyan-400 py-3 px-4 rounded-lg font-semibold flex items-center gap-2 transition-colors border border-cyan-500/30">
                   <Upload size={20} />
                   CSV
                 </div>
@@ -325,13 +324,21 @@ function App() {
             </div>
 
             {currentResult && (
-              <div className={`mt-6 p-4 rounded-lg border-2 ${getSentimentColor(currentResult.sentiment)}`}>
+              <div className={`mt-6 p-4 rounded-lg border-2 bg-[#0f1419] ${
+                currentResult.sentiment === 'POSITIVE' ? 'border-yellow-400' :
+                currentResult.sentiment === 'NEGATIVE' ? 'border-purple-400' :
+                'border-cyan-400'
+              }`}>
                 <div className="flex justify-between items-center mb-3">
-                  <span className={`px-4 py-2 rounded-full font-bold ${getSentimentColor(currentResult.sentiment)}`}>
+                  <span className={`px-4 py-2 rounded-full font-bold ${
+                    currentResult.sentiment === 'POSITIVE' ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400' :
+                    currentResult.sentiment === 'NEGATIVE' ? 'bg-purple-400/20 text-purple-400 border border-purple-400' :
+                    'bg-cyan-400/20 text-cyan-400 border border-cyan-400'
+                  }`}>
                     {currentResult.sentiment}
                   </span>
                   <div className="text-right">
-                    <div className="text-sm font-semibold">
+                    <div className="text-sm font-semibold text-gray-300">
                       {(currentResult.confidence * 100).toFixed(1)}%
                     </div>
                     {currentResult.provider && (
@@ -341,50 +348,61 @@ function App() {
                     )}
                   </div>
                 </div>
-                <p className="text-sm text-gray-700 italic">"{currentResult.text}"</p>
+                <p className="text-sm text-gray-300 italic">"{currentResult.text}"</p>
               </div>
             )}
           </div>
 
           {/* Chart */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Distribution</h2>
+          <div className="bg-[#1a2332] rounded-lg shadow-xl p-6 border border-cyan-500/30">
+            <h2 className="text-xl font-semibold mb-4 text-white">Distribution</h2>
             {history.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
+                <BarChart data={[
+                  { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#FBBF24' },
+                  { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#22D3EE' },
+                  { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#A78BFA' }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1a2332',
+                      border: '1px solid #22d3ee40',
+                      color: '#fff',
+                      borderRadius: '8px'
+                    }}
+                  />
                   <Bar dataKey="count" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-250 flex items-center justify-center text-gray-400">
+              <div className="h-250 flex items-center justify-center text-gray-500">
                 <div className="text-center">
-                  <Database size={48} className="mx-auto mb-2" />
-                  <p>No data yet - start analyzing!</p>
+                  <Database size={48} className="mx-auto mb-2 text-cyan-400" />
+                  <p className="text-cyan-400">No data yet - start analyzing!</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* History */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+          <div className="lg:col-span-2 bg-[#1a2332] rounded-lg shadow-xl p-6 border border-cyan-500/30">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Analysis History</h2>
+              <h2 className="text-xl font-semibold text-white">Analysis History</h2>
               {history.length > 0 && (
                 <div className="flex gap-2">
                   <button
                     onClick={exportToCSV}
-                    className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium"
+                    className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 text-sm font-medium"
                   >
                     <Download size={16} />
                     Export
                   </button>
                   <button
                     onClick={() => setHistory([])}
-                    className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm font-medium"
+                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-sm font-medium"
                   >
                     <Trash2 size={16} />
                     Clear
@@ -392,30 +410,38 @@ function App() {
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {history.length === 0 ? (
-                <div className="text-center text-gray-400 py-12">
-                  <MessageSquare size={48} className="mx-auto mb-3 opacity-50" />
-                  <p>No analysis yet</p>
+                <div className="text-center text-gray-500 py-12">
+                  <MessageSquare size={48} className="mx-auto mb-3 opacity-50 text-cyan-400" />
+                  <p className="text-cyan-400">No analysis yet</p>
                 </div>
               ) : (
                 history.map((item) => (
-                  <div key={item.id} className={`p-3 rounded-lg border ${getSentimentColor(item.sentiment)}`}>
+                  <div key={item.id} className={`p-3 rounded-lg border bg-[#0f1419] ${
+                    item.sentiment === 'POSITIVE' ? 'border-yellow-400/40' :
+                    item.sentiment === 'NEGATIVE' ? 'border-purple-400/40' :
+                    'border-cyan-400/40'
+                  }`}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${getSentimentColor(item.sentiment)}`}>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          item.sentiment === 'POSITIVE' ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400' :
+                          item.sentiment === 'NEGATIVE' ? 'bg-purple-400/20 text-purple-400 border border-purple-400' :
+                          'bg-cyan-400/20 text-cyan-400 border border-cyan-400'
+                        }`}>
                           {item.sentiment} ({(item.confidence * 100).toFixed(0)}%)
                         </span>
                         {item.provider && item.provider !== 'local' && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          <span className="px-2 py-1 bg-cyan-900/40 text-cyan-300 text-xs rounded-full border border-cyan-500/30">
                             {item.provider}
                           </span>
                         )}
                       </div>
                       <span className="text-xs text-gray-500">{item.timestamp}</span>
                     </div>
-                    <p className="text-sm text-gray-700">{item.text}</p>
+                    <p className="text-sm text-gray-300">{item.text}</p>
                   </div>
                 ))
               )}
