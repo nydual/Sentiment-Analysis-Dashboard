@@ -4,10 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { financialSamples, governmentSamples, createSampleCSV } from './data/sampleData';
 import { analyzeWithHuggingFace, analyzeWithHuggingFaceFinancial } from './utils/huggingFaceAPI';
 import Settings from './components/Settings';
-// Removed unused AdvancedCharts import
 
 function App() {
-  // ALL STATE
   const [text, setText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [history, setHistory] = useState([]);
@@ -17,40 +15,38 @@ function App() {
   const [apiKey, setApiKey] = useState('');
   const [useApi, setUseApi] = useState(false);
 
-  // SENTIMENT ANALYSIS - LOCAL
-  function analyzeSentiment(text) {
+  const analyzeSentiment = (text) => {
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'best', 'awesome', 'happy', 'perfect'];
     const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'poor', 'disappointed', 'sad', 'angry'];
-
+    
     const lowerText = text.toLowerCase();
     const words = lowerText.split(/\W+/);
-
+    
     let positiveCount = 0;
     let negativeCount = 0;
-
-    words.forEach(function (word) {
+    
+    words.forEach(word => {
       if (positiveWords.includes(word)) positiveCount++;
       if (negativeWords.includes(word)) negativeCount++;
     });
-
+    
     const total = positiveCount + negativeCount;
     if (total === 0) return { sentiment: 'NEUTRAL', score: 0.5 };
-
+    
     const positiveScore = positiveCount / total;
     const negativeScore = negativeCount / total;
-
+    
     if (positiveScore > negativeScore) {
       return { sentiment: 'POSITIVE', score: 0.6 + (positiveScore * 0.35) };
     } else if (negativeScore > positiveScore) {
       return { sentiment: 'NEGATIVE', score: 0.6 + (negativeScore * 0.35) };
     }
     return { sentiment: 'NEUTRAL', score: 0.5 };
-  }
+  };
 
-  // LOAD SAMPLE DATA
   const loadSampleData = () => {
     const samples = industry === 'finance' ? financialSamples : governmentSamples;
-
+    
     const newEntries = samples.map((item, index) => {
       const result = analyzeSentiment(item.text);
       return {
@@ -64,42 +60,39 @@ function App() {
         category: item.category
       };
     });
-
+    
     setHistory([...newEntries, ...history]);
     alert(`✅ Loaded ${newEntries.length} sample ${industry} reviews!`);
   };
 
-  // DOWNLOAD SAMPLE CSV
   const downloadSampleCSV = () => {
     const csvContent = createSampleCSV(industry);
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
-    const a = download = `${industry}-sample-data.csv`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${industry}-sample-data.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
-  // ANALYZE TEXT - WITH API SUPPORT
   const handleAnalyze = async () => {
     if (!text.trim()) return;
-
+    
     setAnalyzing(true);
     try {
       let result;
-
-      // Check if user wants to use API
+      
       if (useApi && apiKey) {
-        // Use Hugging Face API
         if (industry === 'finance') {
           result = await analyzeWithHuggingFaceFinancial(text, apiKey);
         } else {
           result = await analyzeWithHuggingFace(text, apiKey);
         }
       } else {
-        // Use local analysis
         result = analyzeSentiment(text);
       }
-
+      
       const entry = {
         id: Date.now(),
         text: text.substring(0, 150) + (text.length > 150 ? '...' : ''),
@@ -110,13 +103,12 @@ function App() {
         source: useApi ? 'api' : 'local',
         provider: result.provider || 'local'
       };
-
+      
       setCurrentResult(entry);
       setHistory([entry, ...history]);
       setText('');
     } catch (error) {
       alert(`❌ Error: ${error.message}\n\nFalling back to local analysis...`);
-      // Fallback to local if API fails
       const result = analyzeSentiment(text);
       const entry = {
         id: Date.now(),
@@ -134,7 +126,6 @@ function App() {
     setAnalyzing(false);
   };
 
-  // CSV UPLOAD
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -143,22 +134,22 @@ function App() {
     reader.onload = (e) => {
       const text = e.target.result;
       const lines = text.split('\n').filter(line => line.trim());
-
+      
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const textColumnIndex = headers.findIndex(h =>
+      const textColumnIndex = headers.findIndex(h => 
         ['text', 'review', 'comment', 'feedback'].includes(h)
       );
-
+      
       if (textColumnIndex === -1) {
         alert('Could not find text column. Make sure your CSV has a column named: text, review, or comment');
         return;
       }
-
+      
       const newEntries = [];
       for (let i = 1; i < Math.min(lines.length, 51); i++) {
         const row = lines[i].split(',');
         const textToAnalyze = row[textColumnIndex]?.replace(/^"|"$/g, '').trim();
-
+        
         if (textToAnalyze && textToAnalyze.length > 5) {
           const result = analyzeSentiment(textToAnalyze);
           newEntries.push({
@@ -172,16 +163,15 @@ function App() {
           });
         }
       }
-
+      
       setHistory([...newEntries, ...history]);
       alert(`✅ Analyzed ${newEntries.length} entries!`);
     };
-
+    
     reader.readAsText(file);
     event.target.value = null;
   };
 
-  // EXPORT TO CSV
   const exportToCSV = () => {
     const csvContent = [
       ['Text', 'Sentiment', 'Confidence', 'Timestamp', 'Source', 'Provider'],
@@ -204,31 +194,37 @@ function App() {
     window.URL.revokeObjectURL(url);
   };
 
-  // GET SENTIMENT COLOR
   const getSentimentColor = (sentiment) => {
     switch(sentiment) {
-      case 'POSITIVE': return 'text-green-600 bg-green-50 border-green-200';
-      case 'NEGATIVE': return 'text-red-600 bg-red-50 border-red-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'POSITIVE': return 'border-yellow-400/40 bg-yellow-400/10';
+      case 'NEGATIVE': return 'border-purple-400/40 bg-purple-400/10';
+      default: return 'border-cyan-400/40 bg-cyan-400/10';
     }
   };
 
-  // CHART DATA
+  const getSentimentBadge = (sentiment) => {
+    switch(sentiment) {
+      case 'POSITIVE': return 'bg-yellow-400/20 text-yellow-400 border border-yellow-400';
+      case 'NEGATIVE': return 'bg-purple-400/20 text-purple-400 border border-purple-400';
+      default: return 'bg-cyan-400/20 text-cyan-400 border border-cyan-400';
+    }
+  };
+
   const sentimentCounts = history.reduce((acc, item) => {
     acc[item.sentiment] = (acc[item.sentiment] || 0) + 1;
     return acc;
   }, {});
 
   const chartData = [
-    { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#10b981' },
-    { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#6b7280' },
-    { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#ef4444' }
+    { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#FBBF24' },
+    { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#22D3EE' },
+    { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#A78BFA' }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1f35] to-[#0f1419] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Settings Button */}
+        {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold text-white flex items-center gap-3">
@@ -299,7 +295,7 @@ function App() {
               placeholder="Enter text to analyze (reviews, feedback, comments)..."
               className="w-full h-32 p-4 border border-cyan-500/30 rounded-lg focus:ring-2 focus:ring-cyan-400 resize-none bg-[#0f1419] text-white placeholder-gray-500"
             />
-
+            
             <div className="flex gap-3 mt-4">
               <button
                 onClick={handleAnalyze}
@@ -308,7 +304,7 @@ function App() {
               >
                 {analyzing ? 'Analyzing...' : 'Analyze'}
               </button>
-
+              
               <label className="relative cursor-pointer">
                 <input
                   type="file"
@@ -324,17 +320,9 @@ function App() {
             </div>
 
             {currentResult && (
-              <div className={`mt-6 p-4 rounded-lg border-2 bg-[#0f1419] ${
-                currentResult.sentiment === 'POSITIVE' ? 'border-yellow-400' :
-                currentResult.sentiment === 'NEGATIVE' ? 'border-purple-400' :
-                'border-cyan-400'
-              }`}>
+              <div className={`mt-6 p-4 rounded-lg border-2 bg-[#0f1419] ${getSentimentColor(currentResult.sentiment)}`}>
                 <div className="flex justify-between items-center mb-3">
-                  <span className={`px-4 py-2 rounded-full font-bold ${
-                    currentResult.sentiment === 'POSITIVE' ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400' :
-                    currentResult.sentiment === 'NEGATIVE' ? 'bg-purple-400/20 text-purple-400 border border-purple-400' :
-                    'bg-cyan-400/20 text-cyan-400 border border-cyan-400'
-                  }`}>
+                  <span className={`px-4 py-2 rounded-full font-bold ${getSentimentBadge(currentResult.sentiment)}`}>
                     {currentResult.sentiment}
                   </span>
                   <div className="text-right">
@@ -358,18 +346,14 @@ function App() {
             <h2 className="text-xl font-semibold mb-4 text-white">Distribution</h2>
             {history.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={[
-                  { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#FBBF24' },
-                  { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#22D3EE' },
-                  { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#A78BFA' }
-                ]}>
+                <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="name" stroke="#9CA3AF" />
                   <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1a2332',
-                      border: '1px solid #22d3ee40',
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1a2332', 
+                      border: '1px solid #22d3ee40', 
                       color: '#fff',
                       borderRadius: '8px'
                     }}
@@ -410,7 +394,7 @@ function App() {
                 </div>
               )}
             </div>
-
+            
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {history.length === 0 ? (
                 <div className="text-center text-gray-500 py-12">
@@ -419,18 +403,10 @@ function App() {
                 </div>
               ) : (
                 history.map((item) => (
-                  <div key={item.id} className={`p-3 rounded-lg border bg-[#0f1419] ${
-                    item.sentiment === 'POSITIVE' ? 'border-yellow-400/40' :
-                    item.sentiment === 'NEGATIVE' ? 'border-purple-400/40' :
-                    'border-cyan-400/40'
-                  }`}>
+                  <div key={item.id} className={`p-3 rounded-lg border bg-[#0f1419] ${getSentimentColor(item.sentiment)}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                          item.sentiment === 'POSITIVE' ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400' :
-                          item.sentiment === 'NEGATIVE' ? 'bg-purple-400/20 text-purple-400 border border-purple-400' :
-                          'bg-cyan-400/20 text-cyan-400 border border-cyan-400'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${getSentimentBadge(item.sentiment)}`}>
                           {item.sentiment} ({(item.confidence * 100).toFixed(0)}%)
                         </span>
                         {item.provider && item.provider !== 'local' && (
@@ -449,7 +425,6 @@ function App() {
           </div>
         </div>
 
-        {/* Settings Modal */}
         <Settings
           show={showSettings}
           onClose={() => setShowSettings(false)}
