@@ -216,9 +216,9 @@ function App() {
   }, {});
 
   const chartData = [
-    { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#FBBF24' },
-    { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#22D3EE' },
-    { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#A78BFA' }
+    { name: 'Positive', count: sentimentCounts.POSITIVE || 0, fill: '#169a2cff' },
+    { name: 'Neutral', count: sentimentCounts.NEUTRAL || 0, fill: '#d07ee5ff' },
+    { name: 'Negative', count: sentimentCounts.NEGATIVE || 0, fill: '#de1912ff' }
   ];
 
   return (
