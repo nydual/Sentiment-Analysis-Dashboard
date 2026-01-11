@@ -30,6 +30,9 @@ A AI-powered sentiment analysis tool built with React and Tailwind CSS. Analyze 
 
 **[👉 View Live Demo](https://github.com/nydual/Sentiment-Analysis-Dashboard/blob/main/Demo.gif)**
 
+
+<video src="Demo.mp4" autoplay loop muted></video>
+
 Experience the full dashboard with all features:
 - 📊 Load sample financial or government data
 - 💬 Analyze custom text in real-time
