@@ -24,14 +24,17 @@ A AI-powered sentiment analysis tool built with React and Tailwind CSS. Analyze 
 ## 🖼️ Find the App 
 
 ### Live Preview
-![Sentiment Analyis dashboar](https://sentiment-analysis-dashboard-eight.vercel.app/)
+👉 [Sentiment Analyis dashboar](https://sentiment-analysis-dashboard-eight.vercel.app/)
 
 ## 🚀Demo
 
 **[👉 View Live Demo](https://github.com/nydual/Sentiment-Analysis-Dashboard/blob/main/Demo.gif)**
 
 
-<video src="Demo.mp4" autoplay loop muted></video>
+<video controls width="900"
+  src="https://raw.githubusercontent.com/nydual/Sentiment-Analysis-Dashboard/main/src/Demo.mp4">
+</video>
+
 
 Experience the full dashboard with all features:
 - 📊 Load sample financial or government data
