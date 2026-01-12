@@ -6,6 +6,7 @@ A AI-powered sentiment analysis tool built with React and Tailwind CSS. Analyze 
 
 ## ✨ Features
 
+
 ### Core Functionality
 - 📊 **Real-time Sentiment Analysis** - Instant emotion detection from text
 - 🤖 **Dual Analysis Modes** - Local rule-based or Hugging Face API
@@ -23,6 +24,8 @@ A AI-powered sentiment analysis tool built with React and Tailwind CSS. Analyze 
 
 ## 🖼️ Find the App 
 
+https://github.com/user-attachments/assets/1a67c511-bf55-43ca-96a5-10d4e9d9e1d4
+
 ### Live Preview
 👉 [Sentiment Analyis dashboar](https://sentiment-analysis-dashboard-eight.vercel.app/)
 
@@ -31,9 +34,6 @@ A AI-powered sentiment analysis tool built with React and Tailwind CSS. Analyze 
 **[👉 View Live Demo](https://github.com/nydual/Sentiment-Analysis-Dashboard/blob/main/Demo.gif)**
 
 
-<video controls width="900"
-  src="https://raw.githubusercontent.com/nydual/Sentiment-Analysis-Dashboard/main/src/Demo.mp4">
-</video>
 
 
 Experience the full dashboard with all features:
